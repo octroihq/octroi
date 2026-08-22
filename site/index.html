@@ -3,250 +3,386 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tollway — Toll gates for HTTP routes</title>
-<meta name="description" content="Return a 402, verify the payment, serve the 200. One middleware turns any route into a paid API — no account required.">
+<title>Tollway | merchant rails for x402</title>
+<meta name="description" content="AI agents are becoming paying customers. Tollway makes agent revenue legible: dashboard, receipts, pricing, refunds, and settlement on top of x402. Every request pays its way.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="assets/favicon.ico">
 <style>
+  @font-face {
+    font-family: 'Outfit';
+    src: url('assets/fonts/Outfit-Regular.ttf') format('truetype');
+    font-weight: 400; font-style: normal; font-display: swap;
+  }
+  @font-face {
+    font-family: 'Outfit';
+    src: url('assets/fonts/Outfit-Bold.ttf') format('truetype');
+    font-weight: 700; font-style: normal; font-display: swap;
+  }
   :root {
-    --ink: #0a2540;
-    --ink-soft: #425466;
-    --ink-faint: #6b7c93;
-    --bg: #ffffff;
-    --tint: #f6f9fc;
-    --line: #e6ebf1;
-    --brand: #635bff;
-    --brand-deep: #4f46e5;
-    --amber: #ffb300;
-    --coral: #ff5a5f;
-    --violet: #7a5cff;
-    --cyan: #00d4ff;
-    --code-bg: #0c1a2b;
-    --code-line: #1d3049;
-    --radius: 10px;
+    --ink: #0A0F1E;
+    --indigo: #4353FF;
+    --indigo-deep: #2E3BD9;
+    --indigo-soft: #8B96FF;
+    --indigo-tint: #EDEFFF;
+    --paper: #F7F8FC;
+    --card: #FFFFFF;
+    --panel: #0D1529;
+    --muted: #5A6478;
+    --muted-dark: #8A93A8;
+    --line: #E3E6F0;
+    --line-dark: #1C2742;
+    --mint: #35D9A8;
+    --red: #FF7A93;
+    --font: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --ease: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --r-lg: 28px;
+    --r-md: 16px;
+    --r-sm: 10px;
     font-size: 16px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--font);
     color: var(--ink);
-    background: var(--bg);
+    background: var(--card);
     -webkit-font-smoothing: antialiased;
     line-height: 1.55;
   }
-  ::selection { background: rgba(99, 91, 255, .18); }
+  ::selection { background: rgba(67, 83, 255, .18); }
   a { color: inherit; text-decoration: none; }
-  code, pre, .mono {
-    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
-  }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+  code, pre, .mono { font-family: var(--mono); }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
 
   /* ---------- nav ---------- */
   header {
     position: sticky; top: 0; z-index: 50;
     background: rgba(255, 255, 255, .82);
-    backdrop-filter: saturate(1.6) blur(14px);
-    -webkit-backdrop-filter: saturate(1.6) blur(14px);
+    backdrop-filter: saturate(1.5) blur(16px);
+    -webkit-backdrop-filter: saturate(1.5) blur(16px);
     border-bottom: 1px solid transparent;
-    transition: border-color .25s;
+    transition: border-color var(--ease);
   }
   header.scrolled { border-bottom-color: var(--line); }
-  nav {
-    display: flex; align-items: center; gap: 28px;
-    height: 64px;
-  }
-  .logo {
-    display: flex; align-items: center; gap: 10px;
-    font-weight: 800; font-size: 1.22rem; letter-spacing: -.02em;
-  }
-  .logo svg { display: block; }
-  .nav-links { display: flex; gap: 24px; font-size: .94rem; font-weight: 500; color: var(--ink-soft); }
-  .nav-links a { transition: color .15s; }
+  nav { display: flex; align-items: center; gap: 26px; height: 64px; }
+  .logo img { display: block; height: 30px; width: auto; }
+  .nav-links { display: flex; gap: 22px; font-size: .92rem; color: var(--muted); }
+  .nav-links a { transition: color var(--ease); }
   .nav-links a:hover { color: var(--ink); }
-  .nav-cta { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .nav-cta { margin-left: auto; display: flex; align-items: center; gap: 10px; }
   .pill {
-    display: inline-flex; align-items: center; gap: 8px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     background: var(--ink); color: #fff;
-    font-size: .9rem; font-weight: 600;
-    padding: 8px 18px; border-radius: 999px;
-    transition: transform .15s, box-shadow .15s, background .15s;
+    font-size: .9rem; font-weight: 700;
+    padding: 10px 20px; border-radius: 999px;
+    transition: all var(--ease);
   }
-  .pill:hover { background: #16345c; transform: translateY(-1px); }
-  .pill.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
-  .pill.ghost:hover { box-shadow: inset 0 0 0 1.5px var(--ink-faint); }
-  .pill.brand { background: var(--brand); }
-  .pill.brand:hover { background: var(--brand-deep); box-shadow: 0 6px 20px rgba(99, 91, 255, .35); }
+  .pill:hover { background: var(--indigo); transform: translateY(-1px); box-shadow: 0 10px 26px rgba(67, 83, 255, .3); }
+  .pill.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); font-weight: 400; }
+  .pill.ghost:hover { box-shadow: inset 0 0 0 1.5px var(--muted-dark); transform: none; }
   .pill svg { flex: none; }
 
   /* ---------- hero ---------- */
-  .hero { position: relative; overflow: hidden; }
-  .ribbon {
-    position: absolute;
-    width: 72%; height: 115%;
-    top: -52%; right: -14%;
-    transform: rotate(-14deg);
-    background: linear-gradient(115deg,
-      var(--amber) 0%, var(--coral) 28%, var(--violet) 58%, var(--cyan) 88%);
-    background-size: 300% 300%;
-    animation: flow 14s ease-in-out infinite;
-    clip-path: polygon(0 34%, 100% 0, 100% 66%, 0 100%);
-    opacity: .92;
-    pointer-events: none;
-  }
-  .ribbon::after {
-    content: ""; position: absolute; inset: 0;
-    background: linear-gradient(rgba(255,255,255,.08), rgba(255,255,255,0));
-  }
-  @keyframes flow {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-  }
-  .hero-inner {
-    position: relative;
-    display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px;
-    align-items: center;
-    padding: 96px 0 110px;
-  }
+  .hero { padding: 84px 0 30px; text-align: center; }
   .eyebrow {
     display: inline-flex; align-items: center; gap: 8px;
-    font-size: .82rem; font-weight: 700; letter-spacing: .08em;
-    text-transform: uppercase; color: var(--brand-deep);
-    background: rgba(99, 91, 255, .08);
-    border: 1px solid rgba(99, 91, 255, .22);
-    padding: 5px 12px; border-radius: 999px;
-    margin-bottom: 22px;
+    font-family: var(--mono);
+    font-size: .74rem; letter-spacing: .1em; text-transform: lowercase;
+    color: var(--indigo-deep);
+    background: rgba(67, 83, 255, .06);
+    border: 1px solid rgba(67, 83, 255, .22);
+    padding: 6px 14px; border-radius: 999px;
+    margin-bottom: 26px;
   }
-  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); animation: pulse 2.2s infinite; }
-  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--indigo); animation: pulse 2.4s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
   h1 {
-    font-size: clamp(2.6rem, 5.4vw, 4.1rem);
-    line-height: 1.04; letter-spacing: -.035em; font-weight: 800;
+    font-size: clamp(2.7rem, 6vw, 4.5rem);
+    line-height: 1.01; letter-spacing: -.04em; font-weight: 700;
+    max-width: 21ch; margin: 0 auto;
   }
-  h1 .grad {
-    background: linear-gradient(100deg, var(--coral), var(--violet) 55%, var(--cyan));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
+  h1 .accent { color: var(--indigo); }
+  .hero .sub {
+    margin: 24px auto 10px; max-width: 40rem;
+    font-size: 1.18rem; color: var(--muted); line-height: 1.55;
   }
-  .hero p.sub {
-    margin: 22px 0 32px; max-width: 34rem;
-    font-size: 1.22rem; color: var(--ink-soft); line-height: 1.5;
+  .tagline {
+    margin: 0 0 32px;
+    font-family: var(--mono);
+    font-size: .86rem; color: var(--indigo);
   }
-  .hero-ctas { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .hero-ctas { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
   .install {
     display: inline-flex; align-items: center; gap: 12px;
-    font-size: .92rem; color: var(--ink-soft);
-    background: var(--tint); border: 1px solid var(--line);
-    padding: 9px 16px; border-radius: 999px; cursor: pointer;
-    transition: border-color .15s;
+    font-size: .88rem; color: var(--muted);
+    background: var(--paper); border: 1px solid var(--line);
+    padding: 11px 18px; border-radius: 999px; cursor: pointer;
+    font-family: var(--mono);
+    transition: border-color var(--ease);
   }
-  .install:hover { border-color: var(--ink-faint); }
-  .install .prompt { color: var(--brand); font-weight: 700; }
+  .install:hover { border-color: var(--muted-dark); }
+  .install .prompt { color: var(--indigo); font-weight: 700; }
 
-  /* code card */
-  .code-card {
+  /* ---------- hero mesh + console mock ---------- */
+  .showcase { padding: 54px 0 0; }
+  .mesh {
     position: relative;
-    background: var(--code-bg);
-    border-radius: 14px;
-    box-shadow: 0 30px 60px -18px rgba(10, 37, 64, .45), 0 8px 22px rgba(10, 37, 64, .2);
+    border-radius: var(--r-lg);
+    border: 1px solid var(--line);
+    background:
+      radial-gradient(680px 420px at 12% 0%, rgba(67, 83, 255, .14), transparent 70%),
+      radial-gradient(720px 460px at 88% 18%, rgba(139, 150, 255, .2), transparent 70%),
+      radial-gradient(560px 420px at 55% 110%, rgba(53, 217, 168, .1), transparent 70%),
+      linear-gradient(180deg, #F4F6FE, #EDEFFF);
+    padding: 58px 56px 0;
     overflow: hidden;
-    transform: rotate(.6deg);
+  }
+  .dash-wrap { position: relative; max-width: 880px; margin: 0 auto; }
+  .dash {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md) var(--r-md) 0 0;
+    border-bottom: none;
+    box-shadow: 0 -30px 80px -30px rgba(46, 59, 217, .25), 0 8px 60px rgba(10, 15, 30, .08);
+    overflow: hidden;
+    font-size: .78rem;
+  }
+  .dash-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 13px 18px; border-bottom: 1px solid var(--line);
+    color: var(--muted-dark); font-family: var(--mono); font-size: .74rem;
+  }
+  .dash-head .dot2 { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+  .dash-head .name { margin-left: 8px; }
+  .dash-body { padding: 18px; display: grid; gap: 14px; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .kpi {
+    background: var(--paper);
+    border: 1px solid var(--line); border-radius: var(--r-sm);
+    padding: 12px 14px; text-align: left;
+  }
+  .kpi .k { color: var(--muted-dark); font-size: .68rem; }
+  .kpi .v { font-family: var(--mono); font-weight: 700; font-size: 1.06rem; margin-top: 2px; }
+  .kpi .d { font-family: var(--mono); font-size: .64rem; color: var(--indigo-deep); }
+  .paneli {
+    background: var(--paper);
+    border: 1px solid var(--line); border-radius: var(--r-sm);
+    padding: 13px; text-align: left;
+  }
+  .paneli .t { color: var(--muted-dark); font-size: .68rem; margin-bottom: 10px; font-family: var(--mono); letter-spacing: .06em; }
+  .bars { display: flex; align-items: flex-end; gap: 7px; height: 72px; }
+  .bars .b {
+    flex: 1; border-radius: 3px 3px 0 0;
+    background: linear-gradient(180deg, var(--indigo), var(--indigo-deep));
+    opacity: .8;
+  }
+  .bars .b:nth-child(2n) { opacity: .45; }
+  .bars .b.hot { opacity: 1; box-shadow: 0 0 16px rgba(67, 83, 255, .45); }
+  .rows { display: grid; gap: 5px; }
+  .row {
+    display: grid; grid-template-columns: 1.3fr 1fr .7fr auto; gap: 8px; align-items: center;
+    font-family: var(--mono); font-size: .7rem; color: var(--ink);
+    padding: 7px 9px; border-radius: 7px;
+    background: var(--card);
+    border: 1px solid var(--line);
+  }
+  .row .p { color: var(--muted-dark); }
+  .badge { justify-self: end; font-size: .62rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; }
+  .badge.ok { background: rgba(53, 217, 168, .15); color: #1a9c74; }
+  .badge.no { background: rgba(255, 122, 147, .16); color: #d94f6e; }
+
+  .chip-float {
+    position: absolute; z-index: 2;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    padding: 9px 14px;
+    font-family: var(--mono); font-size: .68rem; color: var(--muted);
+    box-shadow: 0 16px 38px -12px rgba(10, 15, 30, .22);
+  }
+  .chip-float .cdot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .chip-float.receipt { bottom: 26px; left: -74px; }
+  .chip-float.receipt .cdot { background: var(--mint); }
+  .chip-float.price { top: -16px; right: -66px; }
+  .chip-float.price .cdot { background: var(--indigo); }
+  .chip-float .hl { color: var(--indigo-deep); font-weight: 600; }
+
+  /* ticker */
+  .ticker {
+    border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    background: var(--paper);
+    padding: 12px 0; overflow: hidden; margin-top: 64px;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  }
+  .ticker-track { display: flex; gap: 44px; width: max-content; animation: tick 38s linear infinite; }
+  @keyframes tick { to { transform: translateX(-50%); } }
+  .tk {
+    display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+    font-family: var(--mono); font-size: .7rem; color: var(--muted);
+  }
+  .tk .cdot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--mint); }
+  .tk.rej .cdot { background: var(--red); }
+
+  /* ---------- shared section bits ---------- */
+  .kicker {
+    font-family: var(--mono);
+    font-size: .76rem; letter-spacing: .1em; text-transform: lowercase;
+    color: var(--indigo); margin-bottom: 14px;
+  }
+  section h2.big, .strip h2.big {
+    font-size: clamp(1.9rem, 3.6vw, 2.7rem);
+    letter-spacing: -.03em; line-height: 1.08; max-width: 24ch; font-weight: 700;
+  }
+  .lede { margin-top: 16px; color: var(--muted); font-size: 1.06rem; max-width: 40rem; }
+
+  /* ---------- the gap / compare ---------- */
+  .strip { padding: 96px 0 100px; }
+  .compare {
+    margin-top: 52px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    border-radius: var(--r-lg); overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: 0 30px 70px -30px rgba(10, 15, 30, .25);
+  }
+  .side { padding: 38px 36px; }
+  .side .lab {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: .74rem; letter-spacing: .08em;
+    margin-bottom: 22px;
+  }
+  .side ul { list-style: none; display: grid; gap: 15px; }
+  .side li { display: flex; gap: 13px; align-items: flex-start; font-size: .96rem; }
+  .side li .gl { flex: none; width: 22px; height: 22px; border-radius: 7px; margin-top: 1px; display: flex; align-items: center; justify-content: center; }
+  .side.raw { background: var(--panel); color: #c6cfe2; }
+  .side.raw .lab { color: var(--muted-dark); }
+  .side.raw li { color: var(--muted-dark); }
+  .side.raw .gl { background: rgba(255, 255, 255, .05); border: 1px solid var(--line-dark); }
+  .side.raw .gl svg { stroke: var(--muted-dark); }
+  .side.tw { background: var(--card); }
+  .side.tw .lab { color: var(--indigo); }
+  .side.tw li { color: var(--muted); }
+  .side.tw li strong { color: var(--ink); font-weight: 700; }
+  .side.tw .gl { background: var(--indigo-tint); border: 1px solid rgba(67, 83, 255, .2); }
+  .side.tw .gl svg { stroke: var(--indigo); }
+
+  /* ---------- cloud features ---------- */
+  section.cloud { padding: 8px 0 40px; }
+  .grid4 { margin-top: 52px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  .feature {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: 30px 28px;
+    transition: transform var(--ease), box-shadow var(--ease), border-color var(--ease);
+  }
+  .feature:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -16px rgba(10, 15, 30, .14); border-color: #d3d8e8; }
+  .feature .verb {
+    font-family: var(--mono); font-size: .72rem; letter-spacing: .1em;
+    color: var(--indigo); text-transform: lowercase; margin-bottom: 10px; display: block;
+  }
+  .feature h3 { font-size: 1.16rem; margin-bottom: 8px; letter-spacing: -.01em; font-weight: 700; }
+  .feature p { color: var(--muted); font-size: .95rem; }
+
+  /* ---------- how it works ---------- */
+  section.how { padding: 80px 0 40px; }
+  .steps { margin-top: 52px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .step {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: 28px 26px;
+    transition: transform var(--ease), box-shadow var(--ease);
+  }
+  .step:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -16px rgba(10, 15, 30, .14); }
+  .step .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 30px; padding: 0 12px; border-radius: 8px;
+    font-family: var(--mono); font-weight: 600; font-size: .86rem;
+    margin-bottom: 16px;
+  }
+  .step .num.s402 { background: rgba(255, 122, 147, .13); color: #d94f6e; }
+  .step .num.sver { background: var(--indigo-tint); color: var(--indigo-deep); }
+  .step .num.s200 { background: rgba(53, 217, 168, .15); color: #1a9c74; }
+  .step h3 { font-size: 1.08rem; margin-bottom: 8px; font-weight: 700; }
+  .step p { color: var(--muted); font-size: .95rem; }
+
+  /* ---------- sdk ---------- */
+  section.sdk { padding: 80px 0 96px; }
+  .sdk-inner { margin-top: 52px; display: grid; grid-template-columns: 1fr 1.05fr; gap: 48px; align-items: center; }
+  .code-card {
+    background: var(--panel);
+    border-radius: var(--r-md);
+    box-shadow: 0 30px 70px -24px rgba(13, 21, 41, .5);
+    overflow: hidden;
   }
   .code-head {
     display: flex; align-items: center; gap: 8px;
-    padding: 12px 16px; border-bottom: 1px solid var(--code-line);
+    padding: 12px 16px; border-bottom: 1px solid var(--line-dark);
   }
-  .code-head .dot2 { width: 11px; height: 11px; border-radius: 50%; }
-  .code-head .name { margin-left: 10px; color: #7d90a8; font-size: .8rem; }
+  .code-head .dot2 { width: 11px; height: 11px; border-radius: 50%; background: var(--line-dark); }
+  .code-head .name { margin-left: 10px; color: var(--muted-dark); font-size: .76rem; font-family: var(--mono); }
   .code-card pre {
     padding: 18px 20px 22px; overflow-x: auto;
-    font-size: .84rem; line-height: 1.62; color: #dbe6f2;
+    font-size: .8rem; line-height: 1.62; color: #dbe2f2;
   }
-  .tok-k { color: #8ab4ff; }   /* keyword */
-  .tok-s { color: #7ce3b1; }   /* string */
-  .tok-f { color: #ffd479; }   /* fn / property */
-  .tok-cm { color: #5d7a99; font-style: italic; }
-  .tok-p { color: #ff9ecf; }   /* price highlight */
-
-  /* ---------- trust strip / terminal ---------- */
-  .strip { background: var(--tint); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-  .strip-inner {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 48px;
-    align-items: center; padding: 64px 0;
-  }
-  .strip h2 { font-size: 1.7rem; letter-spacing: -.02em; margin-bottom: 12px; }
-  .strip p { color: var(--ink-soft); max-width: 30rem; }
-  .term {
-    background: var(--code-bg); border-radius: 12px; overflow: hidden;
-    box-shadow: 0 18px 44px -14px rgba(10,37,64,.4);
-  }
-  .term pre { padding: 18px 20px; font-size: .84rem; line-height: 1.7; color: #c7d6e6; overflow-x: auto; }
-  .t-dim { color: #5d7a99; }
-  .t-402 { color: var(--coral); font-weight: 700; }
-  .t-200 { color: #35d18e; font-weight: 700; }
-  .t-rcpt { color: var(--amber); }
-
-  /* ---------- how it works ---------- */
-  section.how { padding: 96px 0 40px; }
-  .kicker { font-size: .82rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--brand-deep); margin-bottom: 14px; }
-  section h2.big { font-size: clamp(1.9rem, 3.4vw, 2.6rem); letter-spacing: -.03em; line-height: 1.12; max-width: 34rem; }
-  .lede { margin-top: 16px; color: var(--ink-soft); font-size: 1.08rem; max-width: 38rem; }
-  .steps {
-    margin-top: 56px;
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
-  }
-  .step {
-    position: relative;
-    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 26px 24px 24px;
-    transition: transform .18s, box-shadow .18s;
-  }
-  .step:hover { transform: translateY(-3px); box-shadow: 0 14px 34px -12px rgba(10,37,64,.18); }
-  .step .num {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 40px; height: 40px; border-radius: 10px;
-    font-weight: 800; font-size: 1rem; color: #fff;
-    margin-bottom: 16px;
-  }
-  .step:nth-child(1) .num { background: linear-gradient(135deg, var(--coral), #ff8a5c); }
-  .step:nth-child(2) .num { background: linear-gradient(135deg, var(--violet), var(--brand)); }
-  .step:nth-child(3) .num { background: linear-gradient(135deg, #14b8a6, #35d18e); }
-  .step h3 { font-size: 1.08rem; margin-bottom: 8px; letter-spacing: -.01em; }
-  .step h3 code { font-size: .95em; background: var(--tint); border: 1px solid var(--line); padding: 1px 7px; border-radius: 6px; }
-  .step p { color: var(--ink-soft); font-size: .95rem; }
-
-  /* ---------- features ---------- */
-  section.features { padding: 80px 0 96px; }
-  .grid {
-    margin-top: 52px;
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
-  }
-  .card {
-    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 26px 24px;
-    transition: transform .18s, box-shadow .18s, border-color .18s;
-  }
-  .card:hover { transform: translateY(-3px); box-shadow: 0 14px 34px -12px rgba(10,37,64,.16); border-color: #d5deea; }
-  .card .ico {
-    width: 40px; height: 40px; border-radius: 10px;
+  .tok-k { color: var(--indigo-soft); }
+  .tok-s { color: var(--mint); }
+  .tok-f { color: #c3cafd; }
+  .tok-p { color: #fff; font-weight: 700; }
+  .t-dim { color: var(--muted-dark); }
+  .sdk-points { display: grid; gap: 18px; margin-top: 26px; }
+  .point { display: flex; gap: 14px; align-items: flex-start; }
+  .point .tick {
+    flex: none; width: 26px; height: 26px; border-radius: 8px; margin-top: 2px;
+    background: var(--indigo-tint); border: 1px solid rgba(67, 83, 255, .18);
     display: flex; align-items: center; justify-content: center;
-    background: var(--tint); border: 1px solid var(--line);
-    margin-bottom: 16px;
   }
-  .card h3 { font-size: 1.04rem; margin-bottom: 8px; letter-spacing: -.01em; }
-  .card p { color: var(--ink-soft); font-size: .93rem; }
-  .card p code { background: var(--tint); border: 1px solid var(--line); padding: 0 5px; border-radius: 5px; font-size: .86em; }
+  .point .tick svg { stroke: var(--indigo); }
+  .point h4 { font-size: .98rem; font-weight: 700; }
+  .point p { color: var(--muted); font-size: .92rem; }
+
+  /* ---------- pricing ---------- */
+  section.pricing { padding: 88px 0 96px; background: var(--paper); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .tiers { margin-top: 52px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
+  .tier {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: 32px 28px; display: flex; flex-direction: column;
+    transition: transform var(--ease), box-shadow var(--ease);
+  }
+  .tier:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -16px rgba(10, 15, 30, .12); }
+  .tier.hot { border: 2px solid var(--indigo); position: relative; }
+  .tier.hot .flag {
+    position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+    background: var(--indigo); color: #fff; font-size: .72rem; font-weight: 700;
+    padding: 3px 12px; border-radius: 999px; white-space: nowrap;
+  }
+  .tier .name { font-weight: 700; font-size: 1.06rem; }
+  .tier .price { font-size: 2.1rem; font-weight: 700; letter-spacing: -.02em; margin: 10px 0 2px; }
+  .tier .price small { font-size: .88rem; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+  .tier .for { color: var(--muted); font-size: .88rem; margin-bottom: 18px; }
+  .tier ul { list-style: none; display: grid; gap: 9px; margin-bottom: 26px; }
+  .tier li { font-size: .9rem; color: var(--muted); padding-left: 22px; position: relative; }
+  .tier li::before {
+    content: ""; position: absolute; left: 0; top: 7px;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--indigo);
+  }
+  .tier .pill { margin-top: auto; }
+  .ent-note { margin-top: 26px; text-align: center; color: var(--muted); font-size: .92rem; }
+  .ent-note a { color: var(--indigo); }
 
   /* ---------- networks ---------- */
-  .nets { background: var(--tint); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 72px 0; }
+  .nets { padding: 76px 0; }
   .nets-inner { display: grid; grid-template-columns: 1fr 1.1fr; gap: 48px; align-items: center; }
-  .nets h2 { font-size: 1.8rem; letter-spacing: -.02em; margin-bottom: 12px; }
-  .nets p { color: var(--ink-soft); max-width: 30rem; }
+  .nets h2 { font-size: 1.8rem; letter-spacing: -.02em; margin-bottom: 12px; font-weight: 700; }
+  .nets p { color: var(--muted); max-width: 30rem; }
   .chips { display: flex; flex-wrap: wrap; gap: 10px; }
   .chip {
-    background: #fff; border: 1px solid var(--line); border-radius: 999px;
-    padding: 8px 16px; font-size: .9rem; font-weight: 600; color: var(--ink-soft);
+    background: var(--card); border: 1px solid var(--line); border-radius: 999px;
+    padding: 8px 16px; font-size: .9rem; color: var(--muted);
     display: inline-flex; align-items: center; gap: 8px;
-    transition: transform .15s, box-shadow .15s;
+    transition: transform var(--ease), box-shadow var(--ease);
   }
-  .chip:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(10,37,64,.25); }
+  .chip:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(10, 15, 30, .2); }
   .chip .sw { width: 9px; height: 9px; border-radius: 50%; }
 
   /* ---------- final CTA ---------- */
@@ -256,54 +392,51 @@
     padding: 96px 0;
   }
   .cta-final .glow {
-    position: absolute; width: 720px; height: 720px; border-radius: 50%;
-    background: radial-gradient(closest-side, rgba(122, 92, 255, .5), transparent 70%);
-    top: -320px; right: -160px; pointer-events: none;
+    position: absolute; width: 780px; height: 780px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(67, 83, 255, .34), transparent 70%);
+    top: -360px; right: -200px; pointer-events: none;
   }
-  .cta-final .glow.two {
-    background: radial-gradient(closest-side, rgba(255, 90, 95, .35), transparent 70%);
-    top: auto; bottom: -380px; left: -200px; right: auto;
-  }
+  .cta-final .glow.two { top: auto; bottom: -440px; left: -260px; right: auto; opacity: .55; }
   .cta-inner { position: relative; text-align: center; }
-  .cta-final h2 { font-size: clamp(1.9rem, 3.6vw, 2.7rem); letter-spacing: -.03em; }
-  .cta-final p { margin: 16px auto 30px; color: #a3b3c9; max-width: 34rem; font-size: 1.08rem; }
+  .cta-final h2 { font-size: clamp(1.9rem, 3.6vw, 2.7rem); letter-spacing: -.03em; font-weight: 700; }
+  .cta-final p { margin: 16px auto 30px; color: var(--muted-dark); max-width: 34rem; font-size: 1.06rem; }
+  .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .cta-final .pill { background: #fff; color: var(--ink); }
+  .cta-final .pill:hover { background: var(--indigo); color: #fff; }
   .cmd {
     display: inline-flex; align-items: center; gap: 14px;
-    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16);
-    border-radius: 12px; padding: 14px 22px;
-    font-size: .98rem; color: #e8eef6; cursor: pointer;
-    transition: border-color .15s, background .15s;
+    background: rgba(255, 255, 255, .05); border: 1px solid var(--line-dark);
+    border-radius: 999px; padding: 12px 20px;
+    font-size: .9rem; color: #e6eaf6;
+    font-family: var(--mono);
+    transition: border-color var(--ease), background var(--ease);
   }
-  .cmd:hover { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.09); }
-  .cmd .prompt { color: var(--cyan); font-weight: 700; }
-  .cta-note { margin-top: 18px; font-size: .86rem; color: #7d90a8; }
+  .cmd:hover { border-color: var(--indigo-soft); background: rgba(67, 83, 255, .12); }
+  .cmd .prompt { color: var(--indigo-soft); font-weight: 700; }
+  .cta-note { margin-top: 18px; font-size: .86rem; color: var(--muted-dark); }
+  .cta-tagline { margin-top: 34px; font-family: var(--mono); font-size: .88rem; color: var(--indigo-soft); }
 
   /* ---------- footer ---------- */
-  footer { background: #071a30; color: #8fa3bb; padding: 44px 0; font-size: .9rem; }
+  footer { background: var(--ink); border-top: 1px solid var(--line-dark); color: var(--muted-dark); padding: 40px 0; font-size: .9rem; }
   .foot { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
-  .foot .logo { color: #fff; font-size: 1.05rem; }
+  .foot .logo img { height: 34px; width: auto; display: block; }
   .foot a:hover { color: #fff; }
   .foot-links { display: flex; gap: 22px; }
 
   /* reveal on scroll */
   .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
   .reveal.in { opacity: 1; transform: none; }
-
-  .copied { color: #35d18e !important; }
+  .copied { color: #1a9c74 !important; }
 
   @media (max-width: 900px) {
-    .hero-inner, .strip-inner, .nets-inner { grid-template-columns: 1fr; padding-top: 64px; }
-    .hero-inner { padding: 64px 0 72px; }
-    .steps, .grid { grid-template-columns: 1fr; }
+    .nets-inner, .sdk-inner { grid-template-columns: 1fr; }
+    .steps, .tiers, .compare, .grid4 { grid-template-columns: 1fr; }
     .nav-links { display: none; }
-    .ribbon {
-      clip-path: none; transform: none;
-      width: 100%; height: 42%; top: 0; right: 0;
-      opacity: .16;
-      -webkit-mask-image: linear-gradient(#000, transparent);
-      mask-image: linear-gradient(#000, transparent);
-    }
-    .code-card { transform: none; }
+    .mesh { padding: 34px 20px 0; }
+    .chip-float { display: none; }
+    .kpis { grid-template-columns: 1fr; }
+    .tier.hot { order: -1; }
+    .hero { padding-top: 56px; }
   }
 </style>
 </head>
@@ -312,53 +445,223 @@
 <header id="hdr">
   <div class="wrap">
     <nav>
-      <a class="logo" href="#">
-        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
-          <rect x="1" y="1" width="24" height="24" rx="6" fill="#0a2540"/>
-          <path d="M6 9h14M6 9l2 11M20 9l-2 11M10.5 9l.8 11M15.5 9l-.8 11" stroke="url(#lg)" stroke-width="1.9" stroke-linecap="round"/>
-          <defs><linearGradient id="lg" x1="6" y1="9" x2="20" y2="20"><stop stop-color="#ffb300"/><stop offset=".5" stop-color="#ff5a5f"/><stop offset="1" stop-color="#7a5cff"/></linearGradient></defs>
-        </svg>
-        Tollway
+      <a class="logo" href="#" aria-label="Tollway home">
+        <img src="assets/lockup-light-indigo.svg" alt="tollway">
       </a>
       <div class="nav-links">
+        <a href="#cloud">Product</a>
         <a href="#how">How it works</a>
-        <a href="#features">Features</a>
-        <a href="#networks">Networks</a>
+        <a href="#sdk">Open SDK</a>
+        <a href="#pricing">Pricing</a>
         <a href="https://github.com" rel="noopener">GitHub</a>
       </div>
       <div class="nav-cta">
-        <a class="pill ghost" href="#how">Docs</a>
-        <a class="pill brand" href="#get-started">Get started</a>
+        <a class="pill ghost" href="#sdk">Docs</a>
+        <a class="pill" href="#pricing">Start free</a>
       </div>
     </nav>
   </div>
 </header>
 
 <section class="hero">
-  <div class="ribbon" aria-hidden="true"></div>
-  <div class="wrap hero-inner">
-    <div>
-      <span class="eyebrow"><span class="dot"></span> x402 · pay-per-request</span>
-      <h1>Toll gates for your <span class="grad">HTTP routes.</span></h1>
-      <p class="sub">Return a <strong>402</strong>, verify the payment, serve the <strong>200</strong>. One middleware turns any route into a paid API — priced per request, settled on-chain, no account required.</p>
-      <div class="hero-ctas">
-        <a class="pill brand" href="#get-started">Start collecting tolls
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </a>
-        <button class="install" data-copy="npm i @tollway/gate" title="Copy">
-          <span class="prompt">$</span> <span class="mono">npm i @tollway/gate</span>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M9.5 4.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2" stroke="currentColor" stroke-width="1.3"/></svg>
-        </button>
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span> merchant rails for x402</span>
+    <h1>Agents are becoming customers. <span class="accent">Get paid like a business.</span></h1>
+    <p class="sub">AI agents pay for API calls in about a second over x402. Settlement alone leaves you raw transactions. Tollway makes that revenue legible: a dashboard you can read, receipts you can prove, prices you can change, refunds you can issue.</p>
+    <p class="tagline">Every request pays its way.</p>
+    <div class="hero-ctas">
+      <a class="pill" href="#pricing">Start free
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <button class="install" data-copy="npm i @tollway/gate" title="Copy">
+        <span class="prompt">$</span> <span class="mono">npm i @tollway/gate</span>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M9.5 4.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2" stroke="currentColor" stroke-width="1.3"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="showcase">
+  <div class="wrap">
+    <div class="mesh">
+      <div class="dash-wrap reveal in">
+        <div class="chip-float price"><span class="cdot"></span>price $0.004 <span class="hl">→ $0.006</span> · live in 47s</div>
+        <div class="chip-float receipt"><span class="cdot"></span>x-tollway-receipt · verified</div>
+        <div class="dash" aria-label="Tollway console preview">
+          <div class="dash-head">
+            <span class="dot2"></span><span class="dot2"></span><span class="dot2"></span>
+            <span class="name">console.tollway.sh</span>
+          </div>
+          <div class="dash-body">
+            <div class="kpis">
+              <div class="kpi"><div class="k">Revenue today</div><div class="v">$128.40</div><div class="d">+18% vs yesterday</div></div>
+              <div class="kpi"><div class="k">Tolls collected</div><div class="v">32,104</div><div class="d">across 4 routes</div></div>
+              <div class="kpi"><div class="k">Reject rate</div><div class="v">2.1%</div><div class="d">spam filtered: 1,904</div></div>
+            </div>
+            <div class="paneli">
+              <div class="t">revenue by route · last 14 days</div>
+              <div class="bars">
+                <div class="b" style="height:34%"></div><div class="b" style="height:42%"></div>
+                <div class="b" style="height:38%"></div><div class="b" style="height:52%"></div>
+                <div class="b" style="height:47%"></div><div class="b" style="height:58%"></div>
+                <div class="b" style="height:54%"></div><div class="b" style="height:66%"></div>
+                <div class="b" style="height:61%"></div><div class="b" style="height:72%"></div>
+                <div class="b" style="height:68%"></div><div class="b" style="height:83%"></div>
+                <div class="b" style="height:78%"></div><div class="b hot" style="height:96%"></div>
+              </div>
+            </div>
+            <div class="paneli">
+              <div class="t">recent tolls</div>
+              <div class="rows">
+                <div class="row"><span>/v1/report</span><span class="p">agent 0x93af…4e</span><span>$0.004</span><span class="badge ok">settled</span></div>
+                <div class="row"><span>/v1/search</span><span class="p">agent 0x71bc…09</span><span>$0.012</span><span class="badge ok">settled</span></div>
+                <div class="row"><span>/v1/report</span><span class="p">agent 0x2f01…d7</span><span>$0.004</span><span class="badge no">402</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="code-card reveal in">
-      <div class="code-head">
-        <span class="dot2" style="background:#ff5f57"></span>
-        <span class="dot2" style="background:#febc2e"></span>
-        <span class="dot2" style="background:#28c840"></span>
-        <span class="name mono">server.js — a paid API in 20 lines</span>
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-track">
+        <span class="tk"><span class="cdot"></span>/v1/report · $0.004 · settled on base</span>
+        <span class="tk"><span class="cdot"></span>/v1/search · $0.012 · settled on base</span>
+        <span class="tk rej"><span class="cdot"></span>/v1/report · 402 · challenge issued</span>
+        <span class="tk"><span class="cdot"></span>/v1/embed · $0.002 · settled on arbitrum</span>
+        <span class="tk"><span class="cdot"></span>/v1/report · $0.004 · settled on base</span>
+        <span class="tk"><span class="cdot"></span>/v1/quote · $0.008 · settled on optimism</span>
+        <span class="tk rej"><span class="cdot"></span>/v1/search · 429 · rate limited</span>
+        <span class="tk"><span class="cdot"></span>/v1/report · $0.004 · settled on base</span>
+        <span class="tk"><span class="cdot"></span>/v1/report · $0.004 · settled on base</span>
+        <span class="tk"><span class="cdot"></span>/v1/search · $0.012 · settled on base</span>
+        <span class="tk rej"><span class="cdot"></span>/v1/report · 402 · challenge issued</span>
+        <span class="tk"><span class="cdot"></span>/v1/embed · $0.002 · settled on arbitrum</span>
+        <span class="tk"><span class="cdot"></span>/v1/report · $0.004 · settled on base</span>
+        <span class="tk"><span class="cdot"></span>/v1/quote · $0.008 · settled on optimism</span>
+        <span class="tk rej"><span class="cdot"></span>/v1/search · 429 · rate limited</span>
+        <span class="tk"><span class="cdot"></span>/v1/report · $0.004 · settled on base</span>
       </div>
+    </div>
+  </div>
+</section>
+
+<div class="strip">
+  <div class="wrap">
+    <div class="kicker reveal">the gap</div>
+    <h2 class="big reveal">Settlement is not a business.</h2>
+    <p class="lede reveal">The payments already work. Agents pay in about a second and facilitators settle on-chain. Everything a business needs around those payments is what's missing, and that is the layer Tollway owns.</p>
+    <div class="compare reveal">
+      <div class="side raw">
+        <span class="lab">x402 alone</span>
+        <ul>
+          <li><span class="gl"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 2l7 7M9 2l-7 7" stroke-width="1.7" stroke-linecap="round"/></svg></span>Raw transactions in a block explorer</li>
+          <li><span class="gl"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 2l7 7M9 2l-7 7" stroke-width="1.7" stroke-linecap="round"/></svg></span>No receipts an accountant accepts</li>
+          <li><span class="gl"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 2l7 7M9 2l-7 7" stroke-width="1.7" stroke-linecap="round"/></svg></span>Redeploy to change a price</li>
+          <li><span class="gl"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 2l7 7M9 2l-7 7" stroke-width="1.7" stroke-linecap="round"/></svg></span>Refunds are a support ticket and an apology</li>
+          <li><span class="gl"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M2 2l7 7M9 2l-7 7" stroke-width="1.7" stroke-linecap="round"/></svg></span>Spam and revert-bound calls burn compute</li>
+        </ul>
+      </div>
+      <div class="side tw">
+        <span class="lab">with tollway</span>
+        <ul>
+          <li><span class="gl"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5l2.6 2.5L10 3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><strong>Revenue you can read:</strong> by route, by agent, live</span></li>
+          <li><span class="gl"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5l2.6 2.5L10 3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><strong>Cryptographic receipts</strong> and exports for the books</span></li>
+          <li><span class="gl"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5l2.6 2.5L10 3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><strong>Reprice from the console,</strong> live within 60 seconds</span></li>
+          <li><span class="gl"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5l2.6 2.5L10 3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><strong>Refund a bad response</strong> in one click</span></li>
+          <li><span class="gl"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5l2.6 2.5L10 3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><strong>Spam filtered</strong> before it ever costs compute</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="cloud" id="cloud">
+  <div class="wrap">
+    <div class="kicker reveal">tollway cloud</div>
+    <h2 class="big reveal">The system of record for machine revenue.</h2>
+    <p class="lede reveal">Add an API key and your gate's event stream flows into the hosted console. Every paid call becomes something you can see, prove, control, and settle.</p>
+    <div class="grid4">
+      <div class="feature reveal">
+        <span class="verb">see</span>
+        <h3>Revenue you can read</h3>
+        <p>Revenue by route and by agent, reject rates, top spenders, live. Know which endpoints earn and which agents pay before you plan the next price.</p>
+      </div>
+      <div class="feature reveal">
+        <span class="verb">prove</span>
+        <h3>Receipts that hold up</h3>
+        <p>Cryptographic receipts for every call, audit trails, and exports an accountant accepts. Machine revenue your finance team can actually close the books on.</p>
+      </div>
+      <div class="feature reveal">
+        <span class="verb">control</span>
+        <h3>Operate without redeploying</h3>
+        <p>Change prices from the console, refund bad responses, block abusive agents, and filter spam and revert-bound calls before they cost you compute.</p>
+      </div>
+      <div class="feature reveal">
+        <span class="verb">settle</span>
+        <h3>Micro-payments, real money</h3>
+        <p>Tolls batch on-chain and land as USDC or next-day fiat. Thousands of $0.004 calls become a number your bank statement understands.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="how" id="how">
+  <div class="wrap">
+    <div class="kicker reveal">how it works</div>
+    <h2 class="big reveal">Three status codes. That's the whole protocol.</h2>
+    <p class="lede reveal">Tollway speaks x402, the payment-required flow HTTP always reserved but never shipped. No API keys for your customers, no checkout pages, no invoicing. Agents pay in-band.</p>
+    <div class="steps">
+      <div class="step reveal">
+        <span class="num s402">402</span>
+        <h3>Challenge</h3>
+        <p>An unpaid request gets a signed challenge: the price, the network, and where to pay. Machine-readable, so agents handle it without a human in the loop.</p>
+      </div>
+      <div class="step reveal">
+        <span class="num sver">verify</span>
+        <h3>Verify</h3>
+        <p>The agent pays and retries with proof. Tollway verifies it through your facilitator, Coinbase or PayAI: settlement-gated, nonce-cached, replay-safe.</p>
+      </div>
+      <div class="step reveal">
+        <span class="num s200">200</span>
+        <h3>Serve</h3>
+        <p>Your handler runs exactly as before, and the response carries a signed receipt. Every event streams to your console, where the business half happens.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sdk" id="sdk">
+  <div class="wrap">
+    <div class="kicker reveal">the open sdk</div>
+    <h2 class="big reveal">Start with the SDK. Free forever, no account.</h2>
+    <p class="lede reveal">One line of middleware turns any route into a tollgate. MIT licensed, facilitator-neutral, fully functional standalone. The cloud is additive, never required.</p>
+    <div class="sdk-inner">
+      <div class="reveal">
+        <div class="sdk-points">
+          <div class="point">
+            <span class="tick"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div><h4>Your framework, one line</h4><p>Express and Hono in TypeScript, FastAPI in Python. Same wire format and receipts everywhere, held to golden fixtures byte for byte.</p></div>
+          </div>
+          <div class="point">
+            <span class="tick"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div><h4>No keys custodied, no lock-in</h4><p>Verification is delegated to the facilitator of your choice. Settlement addresses are yours. Swap rails by changing one option.</p></div>
+          </div>
+          <div class="point">
+            <span class="tick"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div><h4>Abuse handled in core</h4><p>Token buckets, automatic 429s, and a payer denylist ship in the open package. Event delivery stays off the halt path, so the cloud can never take your API down.</p></div>
+          </div>
+          <div class="point">
+            <span class="tick"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5l3 3 6-7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <div><h4>15 EVM networks, Solana next</h4><p>Every network the facilitator can actually settle, gated by settleability. Price in dollars, collect in USDC.</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="code-card reveal">
+        <div class="code-head">
+          <span class="dot2"></span><span class="dot2"></span><span class="dot2"></span>
+          <span class="name">server.js, a paid API in 20 lines</span>
+        </div>
 <pre><code><span class="tok-k">import</span> express <span class="tok-k">from</span> <span class="tok-s">"express"</span>;
 <span class="tok-k">import</span> { tollway, coinbaseFacilitator } <span class="tok-k">from</span> <span class="tok-s">"@tollway/gate"</span>;
 
@@ -369,6 +672,7 @@ app.<span class="tok-f">use</span>(<span class="tok-s">"/v1/report"</span>, <spa
   <span class="tok-f">network</span>: <span class="tok-s">"base-sepolia"</span>,
   <span class="tok-f">payTo</span>: process.env.TW_ADDRESS,
   <span class="tok-f">facilitator</span>: <span class="tok-f">coinbaseFacilitator</span>(),
+  <span class="tok-f">apiKey</span>: process.env.TW_KEY, <span class="t-dim">// optional: lights up the console</span>
 }));
 
 app.<span class="tok-f">get</span>(<span class="tok-s">"/v1/report"</span>, (_req, res) =&gt; {
@@ -376,99 +680,65 @@ app.<span class="tok-f">get</span>(<span class="tok-s">"/v1/report"</span>, (_re
 });
 
 app.<span class="tok-f">listen</span>(<span class="tok-p">3000</span>);</code></pre>
-    </div>
-  </div>
-</section>
-
-<div class="strip">
-  <div class="wrap strip-inner">
-    <div class="reveal">
-      <h2>Agents pay it end to end.</h2>
-      <p>Any x402 client — including the reference <code class="mono">x402-fetch</code> — hits the gate, reads the challenge, pays, and retries. The whole loop runs in CI with no funds and no network.</p>
-    </div>
-    <div class="term reveal">
-<pre><span class="t-dim">$</span> node agent.js
-unpaid  → <span class="t-402">402 Payment Required</span>
-<span class="t-dim">  challenge: $0.004 USDC on base-sepolia</span>
-
-<span class="t-dim">$</span> TW_AGENT_KEY=0x… node agent.js
-paid    → <span class="t-200">200 OK</span>
-receipt → <span class="t-rcpt">x-tollway-receipt: eyJhbGciOiJFZERTQSJ9…</span>
-<span class="t-dim">  { "report": "the paid content" }</span></pre>
-    </div>
-  </div>
-</div>
-
-<section class="how" id="how">
-  <div class="wrap">
-    <div class="kicker reveal">How it works</div>
-    <h2 class="big reveal">Three status codes. That's the whole protocol.</h2>
-    <p class="lede reveal">Tollway speaks x402 — the payment-required flow HTTP always reserved but never shipped. No API keys, no checkout pages, no invoicing.</p>
-    <div class="steps">
-      <div class="step reveal">
-        <span class="num">402</span>
-        <h3>Challenge</h3>
-        <p>An unpaid request gets a signed challenge: the price, the network, and where to pay. Machine-readable, so agents handle it without a human in the loop.</p>
-      </div>
-      <div class="step reveal">
-        <span class="num">✓</span>
-        <h3>Verify</h3>
-        <p>The client pays and retries with proof. Tollway verifies it through the facilitator — settlement-gated, nonce-cached, replay-safe.</p>
-      </div>
-      <div class="step reveal">
-        <span class="num">200</span>
-        <h3>Serve</h3>
-        <p>Your handler runs exactly as before. The response carries a signed receipt header the caller can keep as proof of purchase.</p>
       </div>
     </div>
   </div>
 </section>
 
-<section class="features" id="features">
+<section class="pricing" id="pricing">
   <div class="wrap">
-    <div class="kicker reveal">Why Tollway</div>
-    <h2 class="big reveal">Everything a merchant needs, MIT-licensed.</h2>
-    <p class="lede reveal">The core protocol, the adapters, the CLI — all open. The cloud is additive, never required: a standalone install has zero proprietary code in its tree.</p>
-    <div class="grid">
-      <div class="card reveal">
-        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M6 13l-4-4 4-4M12 5l4 4-4 4" stroke="#635bff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <h3>Your framework, one line</h3>
-        <p>Middleware for <code>Express</code>, <code>Hono</code> (edge-ready), and <code>FastAPI</code>. Same wire format, same receipts, everywhere you run.</p>
+    <div class="kicker reveal">pricing</div>
+    <h2 class="big reveal">Free until your agents pay for it.</h2>
+    <p class="lede reveal">The SDK costs nothing, ever. The console starts free and grows with your toll volume.</p>
+    <div class="tiers">
+      <div class="tier reveal">
+        <div class="name">Free</div>
+        <div class="price">$0</div>
+        <div class="for">For your first paid route</div>
+        <ul>
+          <li>Live events and revenue dashboard</li>
+          <li>Signed receipts, 30-day history</li>
+          <li>Spam and reject analytics</li>
+          <li>Community support</li>
+        </ul>
+        <a class="pill ghost" href="#get-started">Start free</a>
       </div>
-      <div class="card reveal">
-        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5l6.5 3.75v7.5L9 16.5l-6.5-3.75v-7.5L9 1.5z" stroke="#ff5a5f" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 9v7.5M9 9L2.5 5.25M9 9l6.5-3.75" stroke="#ff5a5f" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
-        <h3>Byte-for-byte Python parity</h3>
-        <p>The Python port reproduces the TypeScript wire format exactly. Golden cross-language fixtures are the contract, and CI holds both suites to them.</p>
+      <div class="tier hot reveal">
+        <span class="flag">Most popular</span>
+        <div class="name">Pro</div>
+        <div class="price">$49<small>/mo</small></div>
+        <div class="for">For teams monetizing real agent traffic</div>
+        <ul>
+          <li>Everything in Free</li>
+          <li>Remote pricing, live within 60s</li>
+          <li>Refunds and agent blocklists</li>
+          <li>Full receipt history and exports</li>
+          <li>Email support</li>
+        </ul>
+        <a class="pill" href="#get-started">Start with Pro</a>
       </div>
-      <div class="card reveal">
-        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="8" width="14" height="8" rx="2" stroke="#ffb300" stroke-width="1.6"/><path d="M5.5 8V5.5a3.5 3.5 0 0 1 7 0V8" stroke="#ffb300" stroke-width="1.6"/></svg></div>
-        <h3>Replay-safe by design</h3>
-        <p>Signed challenges, a nonce cache, and settleability-gated verification. A payment proof is good for exactly one response.</p>
-      </div>
-      <div class="card reveal">
-        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5c2.5 2.6 2.5 12.4 0 15M9 1.5c-2.5 2.6-2.5 12.4 0 15M1.5 9h15M2.6 5h12.8M2.6 13h12.8" stroke="#00b8e0" stroke-width="1.4" stroke-linecap="round"/><circle cx="9" cy="9" r="7.5" stroke="#00b8e0" stroke-width="1.6"/></svg></div>
-        <h3>15 EVM networks</h3>
-        <p>Every client-parseable EVM network Coinbase's facilitator settles on, gated by settleability — plus a Solana adapter on the roadmap.</p>
-      </div>
-      <div class="card reveal">
-        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5l6 2.5v4c0 4-2.6 7-6 8.5-3.4-1.5-6-4.5-6-8.5v-4l6-2.5z" stroke="#35d18e" stroke-width="1.6" stroke-linejoin="round"/><path d="M6.5 9l1.8 1.8L11.8 7" stroke="#35d18e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <h3>Spam &amp; abuse handled</h3>
-        <p>Token buckets, automatic 429s, and a payer denylist ship in core. Event delivery stays off the halt path, so the cloud can never take your API down.</p>
-      </div>
-      <div class="card reveal">
-        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2.5" stroke="#7a5cff" stroke-width="1.6"/><path d="M5.5 11.5v-3M9 11.5v-6M12.5 11.5v-4.5" stroke="#7a5cff" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-        <h3>Cloud when you want it</h3>
-        <p>Opt into the ingest service for live events and a revenue dashboard. It's lazy-loaded as an optional peer — your gate never depends on it.</p>
+      <div class="tier reveal">
+        <div class="name">Scale</div>
+        <div class="price">$199<small>/mo + 0.9% of toll volume</small></div>
+        <div class="for">For platforms where agent revenue is the business</div>
+        <ul>
+          <li>Everything in Pro</li>
+          <li>Batched settlement, USDC or next-day fiat</li>
+          <li>Audit trails and accounting exports</li>
+          <li>Priority support</li>
+        </ul>
+        <a class="pill ghost" href="#get-started">Talk to us</a>
       </div>
     </div>
+    <p class="ent-note reveal">Enterprise: compliance packs, SLAs, and a self-hosted gateway. <a href="#">Get in touch</a>.</p>
   </div>
 </section>
 
 <div class="nets" id="networks">
   <div class="wrap nets-inner">
     <div class="reveal">
-      <h2>Settled where your users are.</h2>
-      <p>Price routes in dollars; settle in USDC on the network of your choice. Tollway only offers networks the facilitator can actually settle — no dead-end challenges.</p>
+      <h2>Settled where your agents are.</h2>
+      <p>Price routes in dollars; settle in USDC on the network of your choice. Tollway only offers networks the facilitator can actually settle. No dead-end challenges.</p>
     </div>
     <div class="chips reveal">
       <span class="chip"><span class="sw" style="background:#0052ff"></span>Base</span>
@@ -479,7 +749,7 @@ receipt → <span class="t-rcpt">x-tollway-receipt: eyJhbGciOiJFZERTQSJ9…</spa
       <span class="chip"><span class="sw" style="background:#e84142"></span>Avalanche</span>
       <span class="chip"><span class="sw" style="background:#00d4ff"></span>Sei</span>
       <span class="chip"><span class="sw" style="background:#f0b90b"></span>+ 8 more EVM</span>
-      <span class="chip" style="border-style:dashed"><span class="sw" style="background:#9945ff"></span>Solana — next</span>
+      <span class="chip" style="border-style:dashed"><span class="sw" style="background:#9945ff"></span>Solana, next</span>
     </div>
   </div>
 </div>
@@ -487,34 +757,33 @@ receipt → <span class="t-rcpt">x-tollway-receipt: eyJhbGciOiJFZERTQSJ9…</spa
 <div class="cta-final" id="get-started">
   <div class="glow"></div><div class="glow two"></div>
   <div class="wrap cta-inner">
-    <h2 class="reveal">Open the gate in one command.</h2>
-    <p class="reveal">The doctor checks your wallet, your network, and your facilitator, then prints the exact middleware to paste. First toll in minutes.</p>
-    <button class="cmd reveal" data-copy="npx @tollway/gate doctor --pay-to 0xYourAddress --network base-sepolia">
-      <span class="prompt">$</span>
-      <span class="mono">npx @tollway/gate doctor --pay-to 0xYou… --network base-sepolia</span>
-      <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M9.5 4.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2" stroke="currentColor" stroke-width="1.3"/></svg>
-    </button>
-    <div class="cta-note reveal">No account. No keys to provision. MIT-licensed core.</div>
+    <h2 class="reveal">Your first toll in minutes.</h2>
+    <p class="reveal">The doctor checks your wallet, your network, and your facilitator, then prints the exact middleware to paste. Add an API key when you want the console.</p>
+    <div class="cta-btns reveal">
+      <a class="pill" href="#pricing">Start free</a>
+      <button class="cmd" data-copy="npx @tollway/gate doctor --pay-to 0xYourAddress --network base-sepolia">
+        <span class="prompt">$</span>
+        <span class="mono">npx @tollway/gate doctor --pay-to 0xYou…</span>
+        <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M9.5 4.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2" stroke="currentColor" stroke-width="1.3"/></svg>
+      </button>
+    </div>
+    <div class="cta-note reveal">No account required for the SDK. MIT-licensed core.</div>
+    <div class="cta-tagline reveal">Every request pays its way.</div>
   </div>
 </div>
 
 <footer>
   <div class="wrap foot">
-    <a class="logo" href="#">
-      <svg width="22" height="22" viewBox="0 0 26 26" fill="none" aria-hidden="true">
-        <rect x="1" y="1" width="24" height="24" rx="6" fill="#122d4d"/>
-        <path d="M6 9h14M6 9l2 11M20 9l-2 11M10.5 9l.8 11M15.5 9l-.8 11" stroke="url(#lg2)" stroke-width="1.9" stroke-linecap="round"/>
-        <defs><linearGradient id="lg2" x1="6" y1="9" x2="20" y2="20"><stop stop-color="#ffb300"/><stop offset=".5" stop-color="#ff5a5f"/><stop offset="1" stop-color="#7a5cff"/></linearGradient></defs>
-      </svg>
-      Tollway
+    <a class="logo" href="#" aria-label="Tollway home">
+      <img src="assets/lockup-dark.svg?v=2" alt="tollway">
     </a>
     <div class="foot-links">
-      <a href="#how">Protocol</a>
-      <a href="#features">Packages</a>
+      <a href="#cloud">Product</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#sdk">Open SDK</a>
       <a href="https://github.com" rel="noopener">GitHub</a>
-      <a href="#">License</a>
     </div>
-    <div>© 2026 Tollway. Core is MIT.</div>
+    <div>© 2026 Tollway · tollway.sh · Core is MIT.</div>
   </div>
 </footer>
 
