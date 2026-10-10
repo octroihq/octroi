@@ -1,0 +1,50 @@
+{
+  "name": "@octroi/nano",
+  "version": "0.1.0",
+  "description": "Nano (XNO) adapter for Octroi: verifies a published send block against a Nano node. No facilitator, no fee, no key.",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@octroi/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@noble/hashes": "1.8.0",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/octroihq/octroi.git",
+    "directory": "packages/nano"
+  },
+  "homepage": "https://github.com/octroihq/octroi#readme",
+  "bugs": "https://github.com/octroihq/octroi/issues"
+}
