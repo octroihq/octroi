@@ -7,6 +7,7 @@
  */
 import { canonicalJson } from "./canonical.js";
 import type {
+  Asset,
   ChallengeRequest,
   FacilitatorAdapter,
   Network,
@@ -35,6 +36,14 @@ export interface ConformanceOptions {
   validPayload?: PaymentPayload;
   /** Expected settled amount for `validPayload`, atomic units. */
   expectedAmount?: bigint;
+  /**
+   * Settlement address to build the probe challenge with. Defaults to an
+   * EVM-shaped one; an adapter for a network with its own address format
+   * should refuse that, so it passes one that is valid where it settles.
+   */
+  payTo?: string;
+  /** Asset to price the probe challenge in. Defaults to `usdc`. */
+  asset?: Asset;
 }
 
 const BASE_REQUIREMENTS: Omit<ChallengeRequest, "network"> = {
@@ -86,6 +95,8 @@ export async function runFacilitatorConformance(
 
   const requirements: ChallengeRequest = {
     ...BASE_REQUIREMENTS,
+    ...(options.payTo === undefined ? {} : { payTo: options.payTo }),
+    ...(options.asset === undefined ? {} : { asset: options.asset }),
     network,
     expiresAt: Math.floor(Date.now() / 1_000) + 120,
   };

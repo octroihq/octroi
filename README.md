@@ -35,6 +35,7 @@ npx @octroi/gate doctor --pay-to 0xYourAddress --network base-sepolia
 ```
 packages/core/      protocol logic, framework-agnostic   (MIT)
 packages/coinbase/  CDP facilitator adapter, Base        (MIT)
+packages/nano/      Nano (XNO) adapter, read from a node (MIT)
 packages/express/   Express middleware                   (MIT)
 packages/gate/      umbrella install + `doctor` CLI      (MIT)
 packages/hono/      Hono middleware, edge-ready           (MIT)

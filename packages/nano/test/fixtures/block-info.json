@@ -1,0 +1,86 @@
+{
+  "_note": "Verbatim block_info replies (json_block: true) from https://rpc.nano.to, recorded 2026-10-10. Keyed by what they exercise.",
+  "stateSend": {
+    "hash": "64AD5A5C2383E465482CFC2E7C5FDFDA4E4D089477F46F88C4336665B929FEDF",
+    "reply": {
+      "block_account": "nano_1uw3f4f1sgpm7sd1jptri4xphdchhaa6pw67aagygzferhfxrr69nkrmgiw4",
+      "amount": "50000000000000000000000000000000",
+      "balance": "454950477059438533690000000000000",
+      "height": "224",
+      "local_timestamp": "1790888011",
+      "successor": "0000000000000000000000000000000000000000000000000000000000000000",
+      "confirmed": "true",
+      "contents": {
+        "type": "state",
+        "account": "nano_1uw3f4f1sgpm7sd1jptri4xphdchhaa6pw67aagygzferhfxrr69nkrmgiw4",
+        "previous": "D16B7D2EF1CEF3645DBC6CB2B3B34E4271F957E2267E128169A4565BA6FEDA32",
+        "representative": "nano_3patrick68y5btibaujyu7zokw7ctu4onikarddphra6qt688xzrszcg4yuo",
+        "balance": "454950477059438533690000000000000",
+        "link": "511AC43730543F18C07836BB2F61032B16EDA46F10779CA0F330C9B663881060",
+        "link_as_account": "nano_1natrium1o3z5519ifou7xii8crpxpk8y65qmkih8e8bpsjri651oza8imdd",
+        "signature": "EB09907B1BC0EC3B819C7D87CEDC26FF2F9CC45A26FC7657F210ACA05FBCAD68A48911D2BF62241A508F1175F4EFFEBB7EFB1A27526B2FA28D832E056EBE2908",
+        "work": "65e645ad237b46fc",
+        "balance_nano": "454.95047705943853369"
+      },
+      "subtype": "send",
+      "balance_nano": "454.95047705943853369",
+      "amount_nano": "50"
+    }
+  },
+  "stateReceive": {
+    "hash": "13A4D7D8C91118004E55CEDA241F7FD6737ED5BE69B6437806CA0ACBB579D49E",
+    "reply": {
+      "block_account": "nano_1natrium1o3z5519ifou7xii8crpxpk8y65qmkih8e8bpsjri651oza8imdd",
+      "amount": "50000000000000000000000000000000",
+      "balance": "360784522967173701685653362791790",
+      "height": "3224",
+      "local_timestamp": "1790888011",
+      "successor": "0000000000000000000000000000000000000000000000000000000000000000",
+      "confirmed": "true",
+      "contents": {
+        "type": "state",
+        "account": "nano_1natrium1o3z5519ifou7xii8crpxpk8y65qmkih8e8bpsjri651oza8imdd",
+        "previous": "6D7FC58CAC10E970E71FE266D6648B4DF563040037B4EB6BA45C28596CF515E1",
+        "representative": "nano_1x7biz69cem95oo7gxkrw6kzhfywq4x5dupw4z1bdzkb74dk9kpxwzjbdhhs",
+        "balance": "360784522967173701685653362791790",
+        "link": "64AD5A5C2383E465482CFC2E7C5FDFDA4E4D089477F46F88C4336665B929FEDF",
+        "link_as_account": "nano_1s7fdbg491z6eo64sz3ghjhxzpkgbn6baxznfy6eaeu8epwkmzpz9yc76c7f",
+        "signature": "C27C0F51084C691AB038206DD5CFAB942D45B2A2945F7C00BFD3905A809F328FEACE0BCBACF00EFF3E9358299F00F877D7059F3129830367FAC4DB7F11E69505",
+        "work": "a1c28aaa71b6c56a",
+        "balance_nano": "360.78452296717370168565336279179"
+      },
+      "subtype": "receive",
+      "balance_nano": "360.78452296717370168565336279179",
+      "amount_nano": "50"
+    }
+  },
+  "legacySend": {
+    "hash": "ECCB8CB65CD3106EDA8CE9AA893FEAD497A91BCA903890CBD7A5C59F06AB9113",
+    "reply": {
+      "block_account": "nano_3t6k35gi95xu6tergt6p69ck76ogmitsa8mnijtpxm9fkcm736xtoncuohr3",
+      "amount": "205676479000000000000000000000000000000",
+      "balance": "325586539664609129644855132177",
+      "height": "42",
+      "local_timestamp": "1575912871",
+      "successor": "6875C0DBFE5C44D8F8CFF431BC69ED5587C68F89F0663F2BC1FBBFCB46DC5989",
+      "confirmed": "true",
+      "contents": {
+        "type": "send",
+        "previous": "4270F4FB3A820FE81827065F967A9589DF5CA860443F812D21ECE964AC359E05",
+        "destination": "nano_1111111111111111111111111111111111111111111111111111hifc8npp",
+        "balance": "000000041C06DF91D202B70A40000011",
+        "work": "7202df8a7c380578",
+        "signature": "047115CB577AC78F5C66AD79BBF47540DE97A441456004190F22025FE4255285F57010D962601AE64C266C98FA22973DD95AC62309634940B727AC69F0C86D03",
+        "balance_nano": "0"
+      },
+      "balance_nano": "0.325586539664609129644855132177",
+      "amount_nano": "205676479"
+    }
+  },
+  "notFound": {
+    "hash": "0000000000000000000000000000000000000000000000000000000000000001",
+    "reply": {
+      "error": "Block not found"
+    }
+  }
+}
